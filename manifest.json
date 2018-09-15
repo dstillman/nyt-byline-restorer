@@ -1,0 +1,14 @@
+{
+	"name": "New York Times Byline Restorer",
+	"description": "Restores author bylines to the New York Times homepage",
+	"manifest_version": 2,
+	"version": "1.0",
+	"content_scripts": [
+		{
+			"matches": ["https://*.nytimes.com/"],
+			"js": ["bylines.js"],
+			"css": ["style.css"],
+			"run_at": "document_end"
+		}
+	]
+}
