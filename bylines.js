@@ -51,7 +51,7 @@ fetch(feedURL)
 		// from an article) and clear the bylines we added.
 		setTimeout(() => {
 			if (!document.querySelector('.article-byline')) {
-				console.log("Reprocessing bylines");
+				//console.log("Reprocessing bylines");
 				processFeed(doc);
 				return;
 			}
