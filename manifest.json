@@ -2,7 +2,7 @@
 	"name": "New York Times Byline Restorer",
 	"description": "Restores author bylines to the New York Times homepage",
 	"manifest_version": 2,
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"content_scripts": [
 		{
 			"matches": ["https://www.nytimes.com/"],

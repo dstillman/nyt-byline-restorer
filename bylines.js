@@ -1,60 +1,105 @@
 var feedURL = 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml';
 
-function processFeed(doc) {
-	var items = doc.querySelectorAll('item');
-	for (let item of items) {
-		// Get relative paths without query strings from the feed item URLs
-		let url = item.querySelector('link:not([rel])').textContent;
-		url = url.match(/https:\/\/[^\/]+([^\?]+)/)[1];
-		
-		// Opinion pieces already show authors
-		if (url.includes('/opinion/')) {
-			continue;
+function addBylines(urlMap) {
+	var present = 0;
+	var added = 0;
+	var notFound = 0;
+	
+	urlMap.forEach((info, url) => {
+		if (info.id) {
+			if (document.getElementById(info.id)) {
+				//console.log(url + " is already present -- skipping");
+				present++;
+				return;
+			}
+			info.id = null;
 		}
 		
-		// Fix capitalization of author names
-		let authorString = item.querySelector('creator').textContent
-			.split(/ and /g)
-			.map((author) => {
-				return author
-					.toLowerCase()
-					.split(' ')
-					.map(name => name.charAt(0).toUpperCase() + name.substr(1))
-					.join(' ');
-			})
-			.join(' and ');
-		if (!authorString) {
-			continue;
-		}
-		
-		let byline = document.createElement('div');
-		byline.className = 'article-byline';
-		byline.textContent = authorString;
-		
-		let link = document.querySelector(`a[href="${url}"]`);
-		if (link) {
-			let h2 = link.querySelector('h2');
-			let target = h2 ? h2.parentNode : link;
+		let links = document.querySelectorAll(`a[href="${url}"]`);
+		if (links.length) {
+			//console.log(`Found ${url}`);
+			added++;
+			
+			let byline = document.createElement('div');
+			byline.id = 'byline-' + Math.floor(Math.random() * (9999999999));
+			byline.className = 'article-byline';
+			byline.textContent = info.authorString;
+			
+			let target = links[0];
+			for (let link of links) {
+				let h2 = link.querySelector('h2');
+				if (h2) {
+					target = h2.parentNode;
+					// If the headline is centered, center the byline too
+					if (getComputedStyle(h2).getPropertyValue('text-align') == 'center') {
+						byline.classList.add('article-byline-centered');
+					}
+					break;
+				}
+			}
+			
 			target.parentNode.insertBefore(byline, target.nextSibling);
+			info.id = byline.id;
 		}
-	}
+		else {
+			//console.log(`Didn't find ${url}`);
+			notFound++;
+		}
+	});
+	
+	//console.log(`Present: ${present}  Added: ${added}  Not Found: ${notFound}`);
 }
 
 fetch(feedURL)
 	.then(response => response.text())
-	.then(text => (new DOMParser).parseFromString(text, 'text/xml'))
-	.then(doc => {
-		processFeed(doc);
+	.then(text => {
+		var urlMap = new Map();
 		
-		// Check to make sure the bylines are still there after a short delay, and re-add them if not.
-		// Without this, JS on the page can update the components (particularly when clicking Back
-		// from an article) and clear the bylines we added.
-		setTimeout(() => {
-			if (!document.querySelector('.article-byline')) {
-				//console.log("Reprocessing bylines");
-				processFeed(doc);
-				return;
+		let doc = (new DOMParser).parseFromString(text, 'text/xml');
+		let items = doc.querySelectorAll('item');
+		for (let item of items) {
+			// Get relative paths without query strings from the feed item URLs
+			let url = item.querySelector('link:not([rel])').textContent;
+			url = url.match(/https:\/\/[^\/]+([^\?]+)/)[1];
+			
+			// Ignore URLs we already have
+			if (urlMap.has(url)) {
+				continue;
 			}
-		}, 750);
+			
+			// Opinion pieces already show authors
+			if (url.includes('/opinion/')) {
+				continue;
+			}
+			
+			// Fix capitalization of author names
+			let authorString = item.querySelector('creator').textContent
+				.split(/ and /g)
+				.map((author) => {
+					return author
+						.toLowerCase()
+						.split(' ')
+						.map(name => name.charAt(0).toUpperCase() + name.substr(1))
+						.join(' ');
+				})
+				.join(' and ');
+			if (!authorString) {
+				continue;
+			}
+			
+			urlMap.set(
+				url,
+				{
+					id: null,
+					authorString
+				});
+		}
+		
+		addBylines(urlMap);
+		// Check all bylines again after a short delay, both for elements that were added after
+		// the page load and to restore bylines that were removed by JS updating components on
+		// the page (particularly when clicking Back from an article).
+		setTimeout(() => addBylines(urlMap), 750);
+		setTimeout(() => addBylines(urlMap), 2500);
 	})
 	.catch(e => console.log(e));
