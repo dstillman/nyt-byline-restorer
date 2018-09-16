@@ -110,5 +110,6 @@ fetch(feedURL)
 		// the page (particularly when clicking Back from an article).
 		setTimeout(() => addBylines(urlMap), 750);
 		setTimeout(() => addBylines(urlMap), 2500);
+		setTimeout(() => addBylines(urlMap), 5000);
 	})
 	.catch(e => console.log(e));
