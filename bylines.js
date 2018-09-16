@@ -15,7 +15,7 @@ function addBylines(urlMap) {
 			info.id = null;
 		}
 		
-		let links = document.querySelectorAll(`a[href="${url}"]`);
+		let links = document.querySelectorAll(`a[href*="${url}"]`);
 		if (links.length) {
 			//console.log(`Found ${url}`);
 			added++;
