@@ -9,3 +9,7 @@
 .article-byline-centered {
 	text-align: center;
 }
+
+section[data-block-tracking-id="Briefings"] .article-byline {
+	margin-top: 0;
+}

@@ -29,7 +29,16 @@ function addBylines(urlMap) {
 			for (let link of links) {
 				let h2 = link.querySelector('h2');
 				if (h2) {
-					target = h2.parentNode;
+					// Avoid gap between large top headlines and byline
+					let h2Size = getComputedStyle(h2).getPropertyValue('font-size');
+					if (h2Size.endsWith('px') && h2Size > "31") {
+						target = h2;
+					}
+					// Normally we add the byline after the containing div, which makes for
+					// better spacing below headlines with keylines
+					else {
+						target = h2.parentNode;
+					}
 					// If the headline is centered, center the byline too
 					if (getComputedStyle(h2).getPropertyValue('text-align') == 'center') {
 						byline.classList.add('article-byline-centered');
