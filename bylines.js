@@ -23,7 +23,8 @@ function addBylines(urlMap) {
 			let byline = document.createElement('div');
 			byline.id = 'byline-' + Math.floor(Math.random() * (9999999999));
 			byline.className = 'article-byline';
-		    byline.textContent = 'By ' + info.authorString.toUpperCase().replace("AND", "and");
+	    byline.textContent = 'By ' + info.authorString;
+
 			let target = links[0];
 			for (let link of links) {
 				let h2 = link.querySelector('h2');
@@ -86,12 +87,13 @@ if (window.location.href.split('?')[0] == 'https://www.nytimes.com/') {
 					.split(/ and /g)
 					.map((author) => {
 						return author
-							.toLowerCase()
+							.toUpperCase()
 							.split(' ')
 							.map(name => name.charAt(0).toUpperCase() + name.substr(1))
 							.join(' ');
 					})
 					.join(' and ');
+
 				if (!authorString) {
 					continue;
 				}
