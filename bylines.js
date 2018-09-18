@@ -24,8 +24,6 @@ function addBylines(urlMap) {
 			byline.id = 'byline-' + Math.floor(Math.random() * (9999999999));
 			byline.className = 'article-byline';
 		    byline.textContent = 'By ' + info.authorString.toUpperCase().replace("AND", "and");
-
-			
 			let target = links[0];
 			for (let link of links) {
 				let h2 = link.querySelector('h2');
