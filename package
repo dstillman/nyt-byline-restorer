@@ -1,0 +1,2 @@
+rm build.zip
+zip build.zip LICENSE bylines.js manifest.json style.css
