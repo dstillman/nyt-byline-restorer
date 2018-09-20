@@ -1,4 +1,7 @@
-var feedURL = 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml';
+var feedURLs = [
+	'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
+	'https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml'
+];
 
 function addBylines(urlMap) {
 	var present = 0;
@@ -100,49 +103,67 @@ var isHomepage = base == '/';
 var isSection = base.match(/^\/section\/[a-z\-]+/);
 
 if (isHomepage) {
-	fetch(feedURL)
-		.then(response => response.text())
-		.then(text => {
+	// Fetch all feeds
+	let feedPromises = [];
+	for (let url of feedURLs) {
+		feedPromises.push(new Promise((resolve) => {
+			fetch(url)
+				.then(response => resolve(response))
+				// Ignore errors fetching feeds
+				.catch((e) => {
+					console.log(e);
+					resolve(false);
+				})
+		}));
+	}
+	
+	Promise.all(feedPromises)
+		.then(responses => {
+			return Promise.all(responses.filter(r => r).map(r => r.text()));
+		})
+		.then(texts => {
 			var urlMap = new Map();
-			
-			let doc = (new DOMParser).parseFromString(text, 'text/xml');
-			let items = doc.querySelectorAll('item');
-			for (let item of items) {
-				// Get relative paths without query strings from the feed item URLs
-				let url = item.querySelector('link:not([rel])').textContent;
-				url = url.match(/https:\/\/[^\/]+([^\?]+)/)[1];
-				
-				// Ignore URLs we already have
-				if (urlMap.has(url)) {
-					continue;
+			for (let text of texts) {
+				let doc = (new DOMParser).parseFromString(text, 'text/xml');
+				let items = doc.querySelectorAll('item');
+				for (let item of items) {
+					// Get relative paths without query strings from the feed item URLs
+					let url = item.querySelector('link:not([rel])').textContent;
+					url = url.match(/https:\/\/[^\/]+([^\?]+)/)[1];
+					
+					// Ignore URLs we already have
+					if (urlMap.has(url)) {
+						continue;
+					}
+					
+					// Opinion pieces already show authors
+					if (url.includes('/opinion/')) {
+						continue;
+					}
+					
+					// Fix capitalization of author names
+					let authorString = item.querySelector('creator').textContent
+						.split(/ and /g)
+						.map((author) => {
+							return author
+								.toLowerCase()
+								.split(' ')
+								.map(name => name.charAt(0).toUpperCase() + name.substr(1))
+								.join(' ');
+						})
+						.join(' and ');
+					if (!authorString) {
+						continue;
+					}
+					
+					urlMap.set(
+						url,
+						{
+							id: null,
+							authorString
+						}
+					);
 				}
-				
-				// Opinion pieces already show authors
-				if (url.includes('/opinion/')) {
-					continue;
-				}
-				
-				// Fix capitalization of author names
-				let authorString = item.querySelector('creator').textContent
-					.split(/ and /g)
-					.map((author) => {
-						return author
-							.toLowerCase()
-							.split(' ')
-							.map(name => name.charAt(0).toUpperCase() + name.substr(1))
-							.join(' ');
-					})
-					.join(' and ');
-				if (!authorString) {
-					continue;
-				}
-				
-				urlMap.set(
-					url,
-					{
-						id: null,
-						authorString
-					});
 			}
 			
 			addBylines(urlMap);
