@@ -1,7 +1,6 @@
 // ==UserScript==
 // @name         New York Times Byline Restorer
-// @namespace    danstillman.com
-// @support      https://github.com/dstillman/nyt-byline-restorer
+// @namespace    https://github.com/dstillman/nyt-byline-restorer
 // @version      1.0.6
 // @description  Restores author bylines to the New York Times homepage and section pages
 // @author       Dan Stillman
