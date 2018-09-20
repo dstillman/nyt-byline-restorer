@@ -14,10 +14,10 @@ The New York Times removed bylines from its homepage in August 2018. This browse
 
 ### Safari
 
-Safari 12 removed support for developer-signed extensions, but I’ve made the code available as a userscript that can be used with the Tampermonkey extension, which can still be installed from the Safari Extensions Gallery:
+As of Safari 12, it’s no longer possible to easily create and distribute Safari extensions, but I’ve made the code available as a userscript that can be used with the Tampermonkey extension, which is available in the Safari Extensions Gallery:
 
-  1. [Install the Tampermonkey extension](https://safari-extensions.apple.com/details/?id=net.tampermonkey.safari-G3XV72R5TC).
-  2. Click the Tampermonkey toolbar button and click Dashboard.
+  1. Install [Tampermonkey](https://safari-extensions.apple.com/details/?id=net.tampermonkey.safari-G3XV72R5TC).
+  2. Click the Tampermonkey toolbar button and select Dashboard.
   3. Open the Utilities tab.
   4. In the URL field, paste `https://raw.githubusercontent.com/dstillman/nyt-byline-restorer/master/userscript.js` and click Import.
 
