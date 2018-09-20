@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+
+import json
+import re
+
+with open('userscript.js.tmpl') as f:
+    src = f.read()
+
+# Version
+with open('manifest.json') as f:
+    version = json.loads(f.read())['version']
+src = src.replace('%%VERSION%%', version)
+
+# JavaScript
+lines = []
+with open('bylines.js') as f:
+    for line in f.readlines():
+        lines.append('\t' + line)
+src = src.replace('%%JS%%', ''.join(lines))
+
+# CSS
+lines = []
+with open('style.css') as f:
+    block = ''
+    for line in f.readlines():
+        block += line.strip()
+        
+        if re.match('}\s*\n', line):
+            lines.append("GM_addStyle('" + block + "');\n\t\t")
+            block = ''
+            continue
+    lines.append("GM_addStyle('" + block + "');\n\t\t")
+src = src.replace('%%CSS%%', ''.join(lines))
+
+# Write to disk
+with open('userscript.js', 'w') as f:
+    f.write(src)

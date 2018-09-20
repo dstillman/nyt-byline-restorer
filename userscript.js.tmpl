@@ -1,0 +1,31 @@
+// ==UserScript==
+// @name         New York Times Byline Restorer
+// @namespace    danstillman.com
+// @support      https://github.com/dstillman/nyt-byline-restorer
+// @version      %%VERSION%%
+// @description  Restores author bylines to the New York Times homepage and section pages
+// @author       Dan Stillman
+// @match        https://www.nytimes.com/*
+// @run-at       document-end
+// @grant        none
+// ==/UserScript==
+
+(function() {
+%%JS%%
+	
+	if (isHomepage) {
+		function GM_addStyle(css) {
+			const style = document.getElementById("GM_addStyleNYTBR") || (function() {
+				const style = document.createElement('style');
+				style.type = 'text/css';
+				style.id = "GM_addStyleNYTBR";
+				document.head.appendChild(style);
+				return style;
+			})();
+			const sheet = style.sheet;
+			sheet.insertRule(css, (sheet.rules || sheet.cssRules || []).length);
+		}
+		
+		%%CSS%%
+	}
+})();
