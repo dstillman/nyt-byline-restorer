@@ -1,6 +1,7 @@
 var feedURLs = [
 	'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
-	'https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml'
+	'https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml',
+	'https://content.api.nytimes.com/svc/news/v3/all/recent.rss'
 ];
 
 function addBylines(urlMap) {
