@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         New York Times Byline Restorer
 // @namespace    https://github.com/dstillman/nyt-byline-restorer
-// @version      1.0.7
+// @version      1.0.8
 // @description  Restores author bylines to the New York Times homepage and section pages
 // @author       Dan Stillman
 // @match        https://www.nytimes.com/*
@@ -12,13 +12,18 @@
 (function() {
 	var feedURLs = [
 		'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
-		'https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml'
+		'https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml',
+		'https://content.api.nytimes.com/svc/news/v3/all/recent.rss'
 	];
 	
 	function addBylines(urlMap) {
 		var present = 0;
 		var added = 0;
 		var notFound = 0;
+		var feedCounts = {};
+		for (let i = 0; i < feedURLs.length; i++) {
+			feedCounts[i] = 0;
+		}
 		
 		urlMap.forEach((info, url) => {
 			if (info.id) {
@@ -34,6 +39,8 @@
 			if (links.length) {
 				//console.log(`Found ${url}`);
 				added++;
+				
+				feedCounts[info.feed] = ++feedCounts[info.feed];
 				
 				let byline = document.createElement('div');
 				byline.id = 'byline-' + Math.floor(Math.random() * (9999999999));
@@ -72,6 +79,31 @@
 		});
 		
 		//console.log(`Present: ${present}  Added: ${added}  Not Found: ${notFound}`);
+		
+		/*var countStrings = [];
+		for (let i in feedCounts) {
+			countStrings.push(feedURLs[i].match(/[^\/]+$/)[0] + ': ' + feedCounts[i]);
+		}
+		if (countStrings.length) {
+			console.log(countStrings.join(' '));
+		}*/
+	}
+	
+	// From https://gist.github.com/johnhawkinson/7400d0f19158b1bbcc2b5319bbc8d451
+	function titleCase(s) {
+		var n, i, o, olower;
+		n = s.charAt(0);
+		for (i = 1; i < s.length; i++) {
+			o = s.charAt(i - 1);
+			olower = o.toLowerCase();
+			if (o !== olower) {
+				n += s.charAt(i).toLowerCase();
+			}
+			else {
+				n += s.charAt(i);
+			}
+		}
+		return n;
 	}
 	
 	/**
@@ -115,78 +147,81 @@
 	var isSection = base.match(/^\/section\/[a-z\-]+/);
 	
 	if (isHomepage) {
-		// Fetch all feeds
-		let feedPromises = [];
-		for (let url of feedURLs) {
-			feedPromises.push(new Promise((resolve) => {
-				fetch(url)
-					.then(response => resolve(response))
-					// Ignore errors fetching feeds
-					.catch((e) => {
-						console.log(e);
-						resolve(false);
-					})
-			}));
-		}
+		let urls = feedURLs.slice();
+		var urlMap = new Map();
+		let i = 0;
 		
-		Promise.all(feedPromises)
-			.then(responses => {
-				return Promise.all(responses.filter(r => r).map(r => r.text()));
-			})
-			.then(texts => {
-				var urlMap = new Map();
-				for (let text of texts) {
-					let doc = (new DOMParser).parseFromString(text, 'text/xml');
-					let items = doc.querySelectorAll('item');
-					for (let item of items) {
-						// Get relative paths without query strings from the feed item URLs
-						let url = item.querySelector('link:not([rel])').textContent;
-						url = url.match(/https:\/\/[^\/]+([^\?]+)/)[1];
-						
-						// Ignore URLs we already have
-						if (urlMap.has(url)) {
-							continue;
-						}
-						
-						// Opinion pieces already show authors
-						if (url.includes('/opinion/')) {
-							continue;
-						}
-						
-						// Fix capitalization of author names
-						let authorString = item.querySelector('creator').textContent
-							.split(/ and /g)
-							.map((author) => {
-								return author
-									.toLowerCase()
-									.split(' ')
-									.map(name => name.charAt(0).toUpperCase() + name.substr(1))
-									.join(' ');
-							})
-							.join(' and ');
-						if (!authorString) {
-							continue;
-						}
-						
-						urlMap.set(
-							url,
-							{
-								id: null,
-								authorString
-							}
-						);
-					}
-				}
-				
-				addBylines(urlMap);
-				// Check all bylines again after a short delay, both for elements that were added after
-				// the page load and to restore bylines that were removed by JS updating components on
-				// the page (particularly when clicking Back from an article).
+		function processNextFeedURL() {
+			let url = urls.shift();
+			if (!url) {
+				// Once all feeds have been processed, check all bylines again after a short delay,
+				// both for elements that were added after the page load and to restore bylines that
+				// were removed by JS updating components on the page (particularly when clicking
+				// Back from an article).
 				setTimeout(() => addBylines(urlMap), 750);
 				setTimeout(() => addBylines(urlMap), 2500);
 				setTimeout(() => addBylines(urlMap), 5000);
+				return;
+			}
+			
+			let feedIndex = i++;
+			//console.log("Fetching " + url);
+			fetch(url)
+			.then(r => r.text())
+			.then((text) => {
+				//console.log("Running text for " + url);
+				var doc = (new DOMParser).parseFromString(text, 'text/xml');
+				var items = doc.querySelectorAll('item');
+				for (let item of items) {
+					// Get relative paths without query strings from the feed item URLs
+					let url = item.querySelector('link:not([rel])').textContent;
+					url = url.match(/https:\/\/[^\/]+([^\?]+)/)[1];
+					
+					// Ignore URLs we already have
+					if (urlMap.has(url)) {
+						continue;
+					}
+					
+					// Opinion pieces already show authors
+					if (url.includes('/opinion/')) {
+						continue;
+					}
+					
+					// Fix capitalization of author names
+					let authorString = item.querySelector('creator').textContent;
+					if (authorString.startsWith('By ')) {
+						authorString = authorString.substr(3);
+					}
+					authorString = authorString
+						.split(/ and /g)
+						.map(author => titleCase(author))
+						.join(' and ');
+					if (!authorString) {
+						continue;
+					}
+					
+					urlMap.set(
+						url,
+						{
+							id: null,
+							authorString,
+							feed: feedIndex
+						}
+					);
+				}
+				
+				//console.log("Adding bylines for " + url);
+				addBylines(urlMap);
 			})
-			.catch(e => console.log(e));
+			.catch((e) => {
+				console.log(e);
+			})
+			.then(() => {
+				processNextFeedURL();
+			});
+		}
+		
+		processNextFeedURL();
 	}
 	else if (isSection) {
 		unhideBylines();
