@@ -77,6 +77,23 @@ function addBylines(urlMap) {
 	}*/
 }
 
+// From https://gist.github.com/johnhawkinson/7400d0f19158b1bbcc2b5319bbc8d451
+function titleCase(s) {
+	var n, i, o, olower;
+	n = s.charAt(0);
+	for (i = 1; i < s.length; i++) {
+		o = s.charAt(i - 1);
+		olower = o.toLowerCase();
+		if (o !== olower) {
+			n += s.charAt(i).toLowerCase();
+		}
+		else {
+			n += s.charAt(i);
+		}
+	}
+	return n;
+}
+
 /**
  * Bylines on section pages are present but hidden, so just unhide the line and rehide the
  * timestamp and divider (which someone might reasonably want but let's stick to our mission)
@@ -159,15 +176,13 @@ if (isHomepage) {
 				}
 				
 				// Fix capitalization of author names
-				let authorString = item.querySelector('creator').textContent
+				let authorString = item.querySelector('creator').textContent;
+				if (authorString.startsWith('By ')) {
+					authorString = authorString.substr(3);
+				}
+				authorString = authorString
 					.split(/ and /g)
-					.map((author) => {
-						return author
-							.toLowerCase()
-							.split(' ')
-							.map(name => name.charAt(0).toUpperCase() + name.substr(1))
-							.join(' ');
-					})
+					.map(author => titleCase(author))
 					.join(' and ');
 				if (!authorString) {
 					continue;
