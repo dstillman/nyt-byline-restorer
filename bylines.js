@@ -37,7 +37,7 @@ function addBylines(urlMap) {
 			
 			let target = links[0];
 			for (let link of links) {
-				let h2 = link.querySelector('h2');
+				let h2 = link.querySelector('h2, .hed');
 				if (h2) {
 					// Avoid gap between large top headlines and byline
 					let h2Size = getComputedStyle(h2).getPropertyValue('font-size');

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         New York Times Byline Restorer
 // @namespace    https://github.com/dstillman/nyt-byline-restorer
-// @version      1.0.8
+// @version      1.0.9
 // @description  Restores author bylines to the New York Times homepage and section pages
 // @author       Dan Stillman
 // @match        https://www.nytimes.com/*
@@ -49,7 +49,7 @@
 				
 				let target = links[0];
 				for (let link of links) {
-					let h2 = link.querySelector('h2');
+					let h2 = link.querySelector('h2, .hed');
 					if (h2) {
 						// Avoid gap between large top headlines and byline
 						let h2Size = getComputedStyle(h2).getPropertyValue('font-size');
