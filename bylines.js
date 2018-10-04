@@ -176,7 +176,11 @@ if (isHomepage) {
 				}
 				
 				// Fix capitalization of author names
-				let authorString = item.querySelector('creator').textContent;
+				let creator = item.querySelector('creator');
+				if (!creator) {
+					continue;
+				}
+				let authorString = creator.textContent;
 				if (authorString.startsWith('By ')) {
 					authorString = authorString.substr(3);
 				}
