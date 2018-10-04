@@ -4,6 +4,12 @@ var feedURLs = [
 	'https://content.api.nytimes.com/svc/news/v3/all/recent.rss'
 ];
 
+debug = false;
+function log(msg) {
+	if (!debug) return;
+	console.log(msg);
+}
+
 function addBylines(urlMap) {
 	var present = 0;
 	var added = 0;
@@ -16,7 +22,7 @@ function addBylines(urlMap) {
 	urlMap.forEach((info, url) => {
 		if (info.id) {
 			if (document.getElementById(info.id)) {
-				//console.log(url + " is already present -- skipping");
+				log(url + " is already present -- skipping");
 				present++;
 				return;
 			}
@@ -25,7 +31,7 @@ function addBylines(urlMap) {
 		
 		let links = document.querySelectorAll(`a[href*="${url}"]`);
 		if (links.length) {
-			//console.log(`Found ${url}`);
+			log(`Found ${url}`);
 			added++;
 			
 			feedCounts[info.feed] = ++feedCounts[info.feed];
@@ -36,6 +42,8 @@ function addBylines(urlMap) {
 			byline.textContent = info.authorString;
 			
 			let target = links[0];
+			log(`Found ${links.length} links for ${url}`);
+			log(links);
 			for (let link of links) {
 				let h2 = link.querySelector('h2, .hed');
 				if (h2) {
@@ -59,22 +67,25 @@ function addBylines(urlMap) {
 			
 			target.parentNode.insertBefore(byline, target.nextSibling);
 			info.id = byline.id;
+			log(`Added ${url} with ${info.id}`);
 		}
 		else {
-			//console.log(`Didn't find ${url}`);
+			log(`Didn't find ${url}`);
 			notFound++;
 		}
 	});
 	
-	//console.log(`Present: ${present}  Added: ${added}  Not Found: ${notFound}`);
-	
-	/*var countStrings = [];
-	for (let i in feedCounts) {
-		countStrings.push(feedURLs[i].match(/[^\/]+$/)[0] + ': ' + feedCounts[i]);
+	if (debug) {
+		log(`Present: ${present}  Added: ${added}  Not Found: ${notFound}`);
+		
+		let countStrings = [];
+		for (let i in feedCounts) {
+			countStrings.push(feedURLs[i].match(/[^\/]+$/)[0] + ': ' + feedCounts[i]);
+		}
+		if (countStrings.length) {
+			log(countStrings.join(' '));
+		}
 	}
-	if (countStrings.length) {
-		console.log(countStrings.join(' '));
-	}*/
 }
 
 // From https://gist.github.com/johnhawkinson/7400d0f19158b1bbcc2b5319bbc8d451
@@ -153,11 +164,11 @@ if (isHomepage) {
 		}
 		
 		let feedIndex = i++;
-		//console.log("Fetching " + url);
+		log("Fetching " + url);
 		fetch(url)
 		.then(r => r.text())
 		.then((text) => {
-			//console.log("Running text for " + url);
+			log("Running text for " + url);
 			var doc = (new DOMParser).parseFromString(text, 'text/xml');
 			var items = doc.querySelectorAll('item');
 			for (let item of items) {
@@ -202,7 +213,7 @@ if (isHomepage) {
 				);
 			}
 			
-			//console.log("Adding bylines for " + url);
+			log("Adding bylines for " + url);
 			addBylines(urlMap);
 		})
 		.catch((e) => {
