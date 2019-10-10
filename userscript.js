@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         New York Times Byline Restorer
 // @namespace    https://github.com/dstillman/nyt-byline-restorer
-// @version      1.0.9
+// @version      1.0.10
 // @description  Restores author bylines to the New York Times homepage and section pages
 // @author       Dan Stillman
 // @match        https://www.nytimes.com/*
@@ -16,6 +16,12 @@
 		'https://content.api.nytimes.com/svc/news/v3/all/recent.rss'
 	];
 	
+	debug = false;
+	function log(msg) {
+		if (!debug) return;
+		console.log(msg);
+	}
+	
 	function addBylines(urlMap) {
 		var present = 0;
 		var added = 0;
@@ -28,7 +34,7 @@
 		urlMap.forEach((info, url) => {
 			if (info.id) {
 				if (document.getElementById(info.id)) {
-					//console.log(url + " is already present -- skipping");
+					log(url + " is already present -- skipping");
 					present++;
 					return;
 				}
@@ -37,7 +43,7 @@
 			
 			let links = document.querySelectorAll(`a[href*="${url}"]`);
 			if (links.length) {
-				//console.log(`Found ${url}`);
+				log(`Found ${url}`);
 				added++;
 				
 				feedCounts[info.feed] = ++feedCounts[info.feed];
@@ -48,6 +54,8 @@
 				byline.textContent = info.authorString;
 				
 				let target = links[0];
+				log(`Found ${links.length} links for ${url}`);
+				log(links);
 				for (let link of links) {
 					let h2 = link.querySelector('h2, .hed');
 					if (h2) {
@@ -71,22 +79,25 @@
 				
 				target.parentNode.insertBefore(byline, target.nextSibling);
 				info.id = byline.id;
+				log(`Added ${url} with ${info.id}`);
 			}
 			else {
-				//console.log(`Didn't find ${url}`);
+				log(`Didn't find ${url}`);
 				notFound++;
 			}
 		});
 		
-		//console.log(`Present: ${present}  Added: ${added}  Not Found: ${notFound}`);
-		
-		/*var countStrings = [];
-		for (let i in feedCounts) {
-			countStrings.push(feedURLs[i].match(/[^\/]+$/)[0] + ': ' + feedCounts[i]);
+		if (debug) {
+			log(`Present: ${present}  Added: ${added}  Not Found: ${notFound}`);
+			
+			let countStrings = [];
+			for (let i in feedCounts) {
+				countStrings.push(feedURLs[i].match(/[^\/]+$/)[0] + ': ' + feedCounts[i]);
+			}
+			if (countStrings.length) {
+				log(countStrings.join(' '));
+			}
 		}
-		if (countStrings.length) {
-			console.log(countStrings.join(' '));
-		}*/
 	}
 	
 	// From https://gist.github.com/johnhawkinson/7400d0f19158b1bbcc2b5319bbc8d451
@@ -165,11 +176,11 @@
 			}
 			
 			let feedIndex = i++;
-			//console.log("Fetching " + url);
+			log("Fetching " + url);
 			fetch(url)
 			.then(r => r.text())
 			.then((text) => {
-				//console.log("Running text for " + url);
+				log("Running text for " + url);
 				var doc = (new DOMParser).parseFromString(text, 'text/xml');
 				var items = doc.querySelectorAll('item');
 				for (let item of items) {
@@ -188,7 +199,11 @@
 					}
 					
 					// Fix capitalization of author names
-					let authorString = item.querySelector('creator').textContent;
+					let creator = item.querySelector('creator');
+					if (!creator) {
+						continue;
+					}
+					let authorString = creator.textContent;
 					if (authorString.startsWith('By ')) {
 						authorString = authorString.substr(3);
 					}
@@ -210,7 +225,7 @@
 					);
 				}
 				
-				//console.log("Adding bylines for " + url);
+				log("Adding bylines for " + url);
 				addBylines(urlMap);
 			})
 			.catch((e) => {
