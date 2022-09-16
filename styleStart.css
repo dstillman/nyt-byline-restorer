@@ -1,0 +1,10 @@
+/*
+ Initially hide all paragraphs within story blocks that might be "x min read". We can't test based
+ on content with CSS, so we have to hide all candidates, remove using JS, and then remove this
+ stylesheet. This can catch some other paragraphs without specific classes, but if it does they'll
+ appear quickly, so it's not the end of the world. If the NYT would use a specific class on the
+ "x min read" paragraphs, this could be done entirely through CSS.
+*/
+.story-wrapper p[class^="css-"]:not(.summary-class) {
+	display: none;
+}

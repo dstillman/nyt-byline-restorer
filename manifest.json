@@ -9,13 +9,33 @@
 	},
 	"content_scripts": [
 		{
+			"matches": ["https://www.nytimes.com/"],
+			"js": ["start.js"],
+			"run_at": "document_start"
+		},
+		{
 			"matches": ["https://www.nytimes.com/*"],
 			"js": ["bylines.js"],
 			"css": ["style.css"],
 			"run_at": "document_end"
 		}
 	],
+	"options_ui": {
+		"page": "options.html",
+		"open_in_tab": false
+	},
 	"permissions": [
-		"https://*.nytimes.com/*"
-	]
+		"https://*.nytimes.com/*",
+		"storage"
+	],
+	"web_accessible_resources": [
+		"styleStart.css",
+		"announcement1.html"
+	],
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "nyt-byline-restorer@danstillman.com"
+		}
+	}
+
 }

@@ -1,3 +1,5 @@
+var currentVersion = 1;
+
 var feedURLs = [
 	'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
 	'https://rss.nytimes.com/services/xml/rss/nyt/MostViewed.xml',
@@ -139,93 +141,178 @@ function unhideBylines() {
 	}
 }
 
+function removeMinRead() {
+	// Remove "x min read"
+	for (let p of document.querySelectorAll('p')) {
+		if (/min read$/.test(p.textContent)) {
+			p.hidden = true;
+		}
+	}
+	
+	// Remove stylesheet we added to hide "x min read" before we could remove them more precisely
+	var styleStart = document.getElementById('nyt-byline-restorer-style-start');
+	if (styleStart) {
+		styleStart.parentNode.removeChild(styleStart);
+	}
+}
+
+function showAnnouncement() {
+	var iframe = document.createElement('iframe');
+	iframe.style.position = 'fixed';
+	iframe.style.zIndex = 2147483647;
+	iframe.style.top = '15px';
+	iframe.style.right = '20px';
+	iframe.style.width = '325px';
+	iframe.style.height = '200px';
+	iframe.style.border = 'none';
+	
+	function closeIframe() {
+		chrome.storage.sync.set({
+			lastVersion: currentVersion
+		});
+		
+		iframe.parentNode.removeChild(iframe);
+	}
+	
+	window.addEventListener('message', function (event) {
+		if (event.origin + '/' == chrome.runtime.getURL('/')) {
+			if (event.data.type == 'announcement-close') {
+				closeIframe();
+				return;
+			}
+			
+			if (event.data.type == 'setting-change') {
+				switch (event.data.key) {
+					case 'removeMinRead':
+						chrome.storage.sync.set({
+							[event.data.key]: !!event.data.value
+						});
+						break;
+				}
+				
+				if (event.data.key == 'removeMinRead' && event.data.value) {
+					removeMinRead();
+				}
+				
+				closeIframe();
+			}
+		}
+	});
+	iframe.setAttribute('src', chrome.runtime.getURL("announcement1.html"));
+	
+	document.body.appendChild(iframe);
+}
+
+
 var base = window.location.href.match(/https:\/\/[^\/]+([^\?]+)/)[1];
 var isHomepage = base == '/';
 // Match /section/foo and /section/foo/bar, since sometimes the latter has bylines
 // (e.g., /section/technology/personaltech)
 var isSection = base.match(/^\/section\/[a-z\-]+/);
 
-if (isHomepage) {
-	let urls = feedURLs.slice();
-	var urlMap = new Map();
-	let i = 0;
-	
-	function processNextFeedURL() {
-		let url = urls.shift();
-		if (!url) {
-			// Once all feeds have been processed, check all bylines again after a short delay,
-			// both for elements that were added after the page load and to restore bylines that
-			// were removed by JS updating components on the page (particularly when clicking
-			// Back from an article).
-			setTimeout(() => addBylines(urlMap), 750);
-			setTimeout(() => addBylines(urlMap), 2500);
-			setTimeout(() => addBylines(urlMap), 5000);
-			return;
-		}
-		
-		let feedIndex = i++;
-		log("Fetching " + url);
-		fetch(url)
-		.then(r => r.text())
-		.then((text) => {
-			log("Running text for " + url);
-			var doc = (new DOMParser).parseFromString(text, 'text/xml');
-			var items = doc.querySelectorAll('item');
-			for (let item of items) {
-				// Get relative paths without query strings from the feed item URLs
-				let url = item.querySelector('link:not([rel])').textContent;
-				url = url.match(/https:\/\/[^\/]+([^\?]+)/)[1];
-				
-				// Ignore URLs we already have
-				if (urlMap.has(url)) {
-					continue;
-				}
-				
-				// Opinion pieces already show authors
-				if (url.includes('/opinion/')) {
-					continue;
-				}
-				
-				// Fix capitalization of author names
-				let creator = item.querySelector('creator');
-				if (!creator) {
-					continue;
-				}
-				let authorString = creator.textContent;
-				if (authorString.startsWith('By ')) {
-					authorString = authorString.substr(3);
-				}
-				authorString = authorString
-					.split(/ and /g)
-					.map(author => titleCase(author))
-					.join(' and ');
-				if (!authorString) {
-					continue;
-				}
-				
-				urlMap.set(
-					url,
-					{
-						id: null,
-						authorString,
-						feed: feedIndex
-					}
-				);
+chrome.storage.sync.get(
+	{
+		lastVersion: 0,
+		restoreBylines: true,
+		removeMinRead: false,
+	},
+	function (options) {
+		if (isHomepage) {
+			if (options.lastVersion < currentVersion) {
+				showAnnouncement();
 			}
 			
-			log("Adding bylines for " + url);
-			addBylines(urlMap);
-		})
-		.catch((e) => {
-			console.log(e);
-		})
-		.then(() => {
-			processNextFeedURL();
-		});
+			if (options.removeMinRead) {
+				removeMinRead();
+			}
+			
+			let urls = feedURLs.slice();
+			var urlMap = new Map();
+			let i = 0;
+			
+			function processNextFeedURL() {
+				let url = urls.shift();
+				if (!url) {
+					// Once all feeds have been processed, check all bylines again after a short delay,
+					// both for elements that were added after the page load and to restore bylines that
+					// were removed by JS updating components on the page (particularly when clicking
+					// Back from an article).
+					setTimeout(() => addBylines(urlMap), 750);
+					setTimeout(() => addBylines(urlMap), 2500);
+					setTimeout(() => addBylines(urlMap), 5000);
+					return;
+				}
+				
+				let feedIndex = i++;
+				log("Fetching " + url);
+				fetch(url)
+				.then(r => r.text())
+				.then((text) => {
+					log("Running text for " + url);
+					var doc = (new DOMParser).parseFromString(text, 'text/xml');
+					var items = doc.querySelectorAll('item');
+					for (let item of items) {
+						// Get relative paths without query strings from the feed item URLs
+						let url = item.querySelector('link:not([rel])').textContent;
+						if (!url) continue;
+						url = url.match(/https:\/\/[^\/]+([^\?]+)/)[1];
+						
+						// Ignore URLs we already have
+						if (urlMap.has(url)) {
+							continue;
+						}
+						
+						// Opinion pieces already show authors
+						if (url.includes('/opinion/')) {
+							continue;
+						}
+						
+						// Fix capitalization of author names
+						let creator = item.querySelector('creator');
+						if (!creator) {
+							continue;
+						}
+						let authorString = creator.textContent;
+						if (authorString.startsWith('By ')) {
+							authorString = authorString.substr(3);
+						}
+						authorString = authorString
+							.split(/ and /g)
+							.map(author => titleCase(author))
+							.join(' and ');
+						if (!authorString) {
+							continue;
+						}
+						
+						urlMap.set(
+							url,
+							{
+								id: null,
+								authorString,
+								feed: feedIndex
+							}
+						);
+					}
+					
+					log("Adding bylines for " + url);
+					addBylines(urlMap);
+				})
+				.catch((e) => {
+					console.log(e);
+				})
+				.then(() => {
+					processNextFeedURL();
+				});
+			}
+			
+			if (options.restoreBylines) {
+				processNextFeedURL();
+			}
+		}
+		else if (isSection) {
+			if (options.restoreBylines) {
+				unhideBylines();
+			}
+		}
 	}
-	
-	processNextFeedURL();
-}
-else if (isSection) {
-	unhideBylines();
-}
+);
