@@ -108,35 +108,24 @@ function titleCase(s) {
 }
 
 /**
- * Bylines on section pages are present but hidden, so just unhide the line and rehide the
- * timestamp and divider (which someone might reasonably want but let's stick to our mission)
+ * Bylines on section pages are present but hidden, so just unhide them (and the date)
  */
 function unhideBylines() {
-	// Sections with explicit classes, which seems to be most sections
+	// Sections with css-* classes (e.g., https://www.nytimes.com/section/multimedia)
+	elems = document.querySelectorAll('span[itemprop="name"]');
+	for (let elem of elems) {
+		let parent = elem.closest('p');
+		if (getComputedStyle(parent).getPropertyValue('display') == 'none') {
+			if (parent.childNodes.length == 3) {
+				parent.style.display = 'flex';
+			}
+		}
+	}
+	// Sections with explicit classes, which may not be used anymore (9/2022)
 	var elems = document.querySelectorAll('.byline');
 	for (let elem of elems) {
 		if (getComputedStyle(elem).getPropertyValue('display') == 'none') {
 			elem.style.display = 'flex';
-			let freshness = elem.querySelector('.freshness');
-			if (freshness) {
-				freshness.style.display = 'none';
-			}
-			let divider = elem.querySelector('.divider');
-			if (divider) {
-				divider.style.display = 'none';
-			}
-		}
-	}
-	// Sections with css-* classes (e.g., https://www.nytimes.com/section/multimedia)
-	elems = document.querySelectorAll('span[itemprop="author"]');
-	for (let elem of elems) {
-		let parent = elem.parentNode;
-		if (getComputedStyle(parent).getPropertyValue('display') == 'none') {
-			if (parent.childNodes.length == 3) {
-				parent.style.display = 'flex';
-				parent.childNodes[0].style.display = 'none';
-				parent.childNodes[1].style.display = 'none';
-			}
 		}
 	}
 }
