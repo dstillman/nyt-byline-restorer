@@ -1,2 +1,16 @@
-rm build.zip
-zip build.zip LICENSE bylines.js manifest.json icon*.png style.css
+#!/bin/bash
+set -eou pipefail
+
+rm -f build.zip
+rm -rf build
+mkdir build
+cp src/* build
+cp LICENSE build
+cd build
+zip ../build.zip *
+cd ..
+rm -rf build
+echo
+unzip -l build.zip
+echo
+unzip -p build.zip manifest.json
